@@ -1,0 +1,188 @@
+module l2vpn {
+
+  namespace "http://example.com/l2vpn";
+  prefix l2vpn;
+
+  import ietf-inet-types {
+    prefix inet;
+  }
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+  import tailf-ned-cisco-ios { 
+	  prefix ios; 
+  }
+  import tailf-ned-cisco-ios-xr {
+    prefix xr;
+  }
+
+  description
+    "Use for TOT NSO L2VPN Provisioning";
+
+  revision 2020-02-01 {
+    description
+      "Initial revision.";
+  }
+
+  // may replace this with other ways of refering to the devices.
+  leaf-list device {
+    type leafref {
+      path "/ncs:devices/ncs:device/ncs:name";
+    }
+  }
+
+  typedef l2-serv-encap-type {
+    type enumeration {
+      enum untagged;
+      enum dot1q;
+    }
+  }
+
+  typedef l2-serv-rewrite {
+    type enumeration {
+      enum pop1 {
+        value 1;
+        description "Pop 1 tag";
+      } 
+      enum translate1to1 {
+        value 5;
+        description "Translate 1-to-1"; 
+      }
+    }
+  }
+
+  container l2vpn {
+    list vpws {
+
+      key "name";
+      leaf name {
+        tailf:info "Unique service id";
+        tailf:cli-allow-range;
+        type string;
+      }
+
+      uses ncs:service-data;
+      ncs:servicepoint l2vpn-servicepoint;
+
+      leaf vcid {
+        type uint32 {
+          range "1..2147483647";
+        }
+        mandatory true;
+      }
+
+      list endpoint {
+        key device;
+        
+        leaf device {
+          tailf:info "PE Router";
+          type leafref {
+            path "/ncs:devices/ncs:device/ncs:name";
+          }
+        }
+
+        container interface-ios {
+          when "/ncs:devices/ncs:device[ncs:name=current()/../device]/ncs:capability[ncs:uri='urn:ios']";
+          choice interface-type {
+            case gig {
+              leaf GigabitEthernet {
+                type leafref {
+                  path "/ncs:devices/ncs:device[ncs:name=current()/../../device]/ncs:config/ios:interface/ios:GigabitEthernet/ios:name";
+                }
+              }
+            }
+
+            case ten-gig {
+              leaf TenGigabitEthernet {
+                when "/ncs:devices/ncs:device[ncs:name=current()/../../device]/ncs:config/ios:interface/ios:TenGigabitEthernet/ios:name";
+                type leafref {
+                  path "/ncs:devices/ncs:device[ncs:name=current()/../../device]/ncs:config/ios:interface/ios:TenGigabitEthernet/ios:name";
+                }
+              }
+            }
+          }
+        }
+        
+        container interface-ios-xr {
+          when "/ncs:devices/ncs:device[ncs:name=current()/../device]/ncs:capability[ncs:uri='http://tail-f.com/ned/cisco-ios-xr']";
+
+          choice interface-type {
+            case gig {
+              leaf GigabitEthernet {
+                type leafref {
+                  path "/ncs:devices/ncs:device[ncs:name=current()/../../device]/ncs:config/xr:interface/xr:GigabitEthernet/xr:id";
+                }
+              }
+            }
+
+            case ten-gig {
+              leaf TenGigabitEthernet {
+                type leafref {
+                  path "/ncs:devices/ncs:device[ncs:name=current()/../../device]/ncs:config/xr:interface/xr:TenGigE/xr:id";
+                }
+              }
+            }
+          }
+        }
+
+        leaf instance-id {
+          type int32 {
+            range "1..4000";
+          }
+          mandatory true;
+        }
+
+        leaf encapsulation {
+          type l2-serv-encap-type;
+        }
+
+        container rewrite {
+          container ingress {
+            leaf tag {
+              type l2-serv-rewrite;
+            }
+            container dot1q {
+              when "../tag = 'translate1to1'";
+              leaf vlan-id {
+                type int32 {
+                  range "1..4000";
+                }
+              }
+            }
+          }
+        }
+
+        leaf vlan-id {
+          when "../encapsulation = 'dot1q'";
+          type int32 {
+            range "1..4000";
+          }
+        }
+
+        leaf mtu {
+          type uint16 {
+            range "1500..9000";
+          }
+          default 1500;
+        }
+      }
+    }
+  }
+
+  // list l2vpn {
+  //   description "This is an RFS skeleton service";
+
+  //   key name;
+  //   leaf name {
+  //     tailf:info "Unique service id";
+  //     tailf:cli-allow-range;
+  //     type string;
+  //   }
+
+  //   uses ncs:service-data;
+  //   ncs:servicepoint l2vpn-servicepoint;
+  // }
+}

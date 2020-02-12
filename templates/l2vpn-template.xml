@@ -1,0 +1,112 @@
+<config-template xmlns="http://tail-f.com/ns/config/1.0">
+  <devices xmlns="http://tail-f.com/ns/ncs">
+    <!-- <?foreach {/endpoint}?> -->
+    <device foreach="{/endpoint}">
+      <name>{device}</name>
+      <config>
+        <interface xmlns="urn:ios">
+          <GigabitEthernet when ="{ interface-ios/GigabitEthernet }" tags="merge">
+            <name>{interface-ios/GigabitEthernet}</name>
+            <service>
+              <instance>
+                <id>{../instance-id}</id>
+                <ethernet/>
+                <encapsulation>
+                  <untagged when ="{ encapsulation = 'untagged' }"/>
+                  <dot1q when ="{ encapsulation = 'dot1q' }">
+                    <id>{vlan-id}</id>
+                  </dot1q>
+                </encapsulation>
+                <rewrite when ="{ encapsulation = 'dot1q' }">
+                  <ingress>
+                    <tag>
+                      <pop>1</pop>
+                      <mode>symmetric</mode>
+                    </tag>
+                  </ingress>
+                </rewrite>
+                <xconnect>
+                  <address>1.1.1.1</address>
+                  <vcid>{../vc-id}</vcid>
+                  <encapsulation>mpls</encapsulation>
+                  <mtu>{mtu}</mtu>
+                </xconnect>
+              </instance>
+            </service>
+          </GigabitEthernet>
+          <TenGigabitEthernet when ="{ interface-ios/TenGigabitEthernet }" tags="merge">
+            <name>{interface-ios/TenGigabitEthernet}</name>
+            <service>
+              <instance>
+                <id>{../instance-id}</id>
+                <ethernet/>
+                <encapsulation>
+                  <untagged when ="{ encapsulation = 'untagged' }"/>
+                  <dot1q when ="{ encapsulation = 'dot1q' }">
+                    <id>{vlan-id}</id>
+                  </dot1q>
+                </encapsulation>
+                <rewrite when ="{ encapsulation = 'dot1q' }">
+                  <ingress>
+                    <tag>
+                      <pop>1</pop>
+                      <mode>symmetric</mode>
+                    </tag>
+                  </ingress>
+                </rewrite>
+                <xconnect>
+                  <address>1.1.1.1</address>
+                  <vcid>{current()/../../vc-id}</vcid>
+                  <encapsulation>mpls</encapsulation>
+                  <mtu>{mtu}</mtu>
+                </xconnect>
+              </instance>
+            </service>
+          </TenGigabitEthernet>
+        </interface>
+
+        <interface xmlns="http://tail-f.com/ned/cisco-ios-xr" tags="merge">
+          <GigabitEthernet-subinterface when ="{ interface-ios-xr/GigabitEthernet }">
+          <GigabitEthernet>
+            <id>{interface-ios-xr/GigabitEthernet}.{instance-id}</id>
+            <mode>l2transport</mode>
+            <mtu>{mtu + 22}</mtu>
+            <encapsulation>
+              <dot1q>
+                <vlan-id>{vlan-id}</vlan-id>
+              </dot1q>
+            </encapsulation>
+            <rewrite>
+              <ingress>
+                <tag>
+                  <pop>1</pop>
+                  <mode>symmetric</mode>
+                </tag>
+              </ingress>
+            </rewrite>
+          </GigabitEthernet>
+          </GigabitEthernet-subinterface>
+        </interface>
+
+        <l2vpn xmlns="http://tail-f.com/ned/cisco-ios-xr">
+          <xconnect>
+            <group>
+              <name>NSO_Group</name>
+              <p2p>
+                <name>{instance-id}</name>
+                <interface>
+                  <name>GigabitEthernet{interface-ios-xr/GigabitEthernet}.{instance-id}</name>
+                </interface>
+                <neighbor>
+                  <address>1.1.1.1</address>
+                  <pw-id>{current()/../../vc-id}</pw-id>
+                </neighbor>
+              </p2p>
+            </group>
+          </xconnect>
+        </l2vpn>
+      </config>
+    </device>
+    <!-- <?end?> -->
+  </devices>
+</config-template>
