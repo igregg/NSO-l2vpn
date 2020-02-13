@@ -2,7 +2,7 @@
   <name>l2vpn</name>
   <package-version>1.0</package-version>
   <description>Generated Python package</description>
-  <ncs-min-version>5.2</ncs-min-version>
+  <ncs-min-version>5.1</ncs-min-version>
 
   <component>
     <name>main</name>
