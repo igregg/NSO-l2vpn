@@ -1,0 +1,37 @@
+curl -i -X POST: http://nso-server:8080/api/running/l2vpn -u admin:admin -H "Content-Type: application/vnd.yang.data+json" -d
+'{
+  "l2vpn:vpws": {
+    "name": "1111",
+    "vcid": 111101111,
+    "endpoint": [
+      {
+        "device": "LPE-XE",
+        "interface-ios": {
+          "GigabitEthernet": "3"
+        },
+        "instance-id": 1111,
+        "encapsulation": "dot1q",
+        "rewrite": {
+          "ingress": {
+            "tag": "pop1"
+          }
+        },
+        "vlan-id": 1111
+      },
+      {
+        "device": "LPE-XR",
+        "interface-ios-xr": {
+          "GigabitEthernet": "0/0/0/1"
+        },
+        "instance-id": 1111,
+        "encapsulation": "dot1q",
+        "rewrite": {
+          "ingress": {
+            "tag": "pop1"
+          }
+        },
+        "vlan-id": 1111
+      }
+    ]
+  }
+}'
