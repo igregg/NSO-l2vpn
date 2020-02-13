@@ -1,23 +1,24 @@
 <config-template xmlns="http://tail-f.com/ns/config/1.0">
   <devices xmlns="http://tail-f.com/ns/ncs">
     <!-- <?foreach {/endpoint}?> -->
-    <device foreach="{/endpoint}">
-      <name>{device}</name>
+    <!-- <device foreach="{/endpoint}"> -->
+    <device>
+      <name>{$DEVICE_NAME}</name>
       <config>
         <interface xmlns="urn:ios">
-          <GigabitEthernet when ="{ interface-ios/GigabitEthernet }" tags="merge">
-            <name>{interface-ios/GigabitEthernet}</name>
+          <GigabitEthernet when ="{ $INTERFACE_TYPE = 'GigabitEthernet' }" tags="merge">
+            <name>{$INTERFACE_NUM}</name>
             <service>
               <instance>
-                <id>{../instance-id}</id>
+                <id>{$INST_ID}</id>
                 <ethernet/>
                 <encapsulation>
-                  <untagged when ="{ encapsulation = 'untagged' }"/>
-                  <dot1q when ="{ encapsulation = 'dot1q' }">
-                    <id>{vlan-id}</id>
+                  <untagged when ="{ $ENCAPSULATION = 'untagged' }"/>
+                  <dot1q when ="{ $ENCAPSULATION = 'dot1q' }">
+                    <id>{$VLAN}</id>
                   </dot1q>
                 </encapsulation>
-                <rewrite when ="{ encapsulation = 'dot1q' }">
+                <rewrite when ="{ $ENCAPSULATION = 'dot1q' }">
                   <ingress>
                     <tag>
                       <pop>1</pop>
@@ -26,27 +27,27 @@
                   </ingress>
                 </rewrite>
                 <xconnect>
-                  <address>1.1.1.1</address>
-                  <vcid>{../vc-id}</vcid>
+                  <address>{$NEIGHBOR}</address>
+                  <vcid>{$VC_ID}</vcid>
                   <encapsulation>mpls</encapsulation>
-                  <mtu>{mtu}</mtu>
+                  <mtu>{$MTU}</mtu>
                 </xconnect>
               </instance>
             </service>
           </GigabitEthernet>
-          <TenGigabitEthernet when ="{ interface-ios/TenGigabitEthernet }" tags="merge">
-            <name>{interface-ios/TenGigabitEthernet}</name>
+          <TenGigabitEthernet when ="{ $INTERFACE_TYPE = 'TenGigabitEthernet' }" tags="merge">
+            <name>{$INTERFACE_NUM}</name>
             <service>
               <instance>
-                <id>{../instance-id}</id>
+                <id>{$INST_ID}</id>
                 <ethernet/>
                 <encapsulation>
-                  <untagged when ="{ encapsulation = 'untagged' }"/>
-                  <dot1q when ="{ encapsulation = 'dot1q' }">
-                    <id>{vlan-id}</id>
+                  <untagged when ="{ $ENCAPSULATION = 'untagged' }"/>
+                  <dot1q when ="{ $ENCAPSULATION = 'dot1q' }">
+                    <id>{$VLAN}</id>
                   </dot1q>
                 </encapsulation>
-                <rewrite when ="{ encapsulation = 'dot1q' }">
+                <rewrite when ="{ $ENCAPSULATION = 'dot1q' }">
                   <ingress>
                     <tag>
                       <pop>1</pop>
@@ -55,10 +56,10 @@
                   </ingress>
                 </rewrite>
                 <xconnect>
-                  <address>1.1.1.1</address>
-                  <vcid>{current()/../../vc-id}</vcid>
+                  <address>{$NEIGHBOR}</address>
+                  <vcid>{$VC_ID}</vcid>
                   <encapsulation>mpls</encapsulation>
-                  <mtu>{mtu}</mtu>
+                  <mtu>{$MTU}</mtu>
                 </xconnect>
               </instance>
             </service>
@@ -66,17 +67,17 @@
         </interface>
 
         <interface xmlns="http://tail-f.com/ned/cisco-ios-xr" tags="merge">
-          <GigabitEthernet-subinterface when ="{ interface-ios-xr/GigabitEthernet }">
+          <GigabitEthernet-subinterface when ="{ $INTERFACE_TYPE = 'GigabitEthernet' }">
           <GigabitEthernet>
-            <id>{interface-ios-xr/GigabitEthernet}.{instance-id}</id>
+            <id>{$INTERFACE_NUM}.{$INST_ID}</id>
             <mode>l2transport</mode>
-            <mtu>{mtu + 22}</mtu>
+            <mtu>{$MTU+22}</mtu>
             <encapsulation>
-              <dot1q>
-                <vlan-id>{vlan-id}</vlan-id>
+              <dot1q when="{ $ENCAPSULATION = 'dot1q' }">
+                <vlan-id>{$VLAN}</vlan-id>
               </dot1q>
             </encapsulation>
-            <rewrite>
+            <rewrite when="{ $ENCAPSULATION = 'dot1q' }">
               <ingress>
                 <tag>
                   <pop>1</pop>
@@ -91,15 +92,15 @@
         <l2vpn xmlns="http://tail-f.com/ned/cisco-ios-xr">
           <xconnect>
             <group>
-              <name>NSO_Group</name>
+              <name>NSO-Group</name>
               <p2p>
-                <name>{instance-id}</name>
+                <name>NSO-Group_{$VLAN}</name>
                 <interface>
-                  <name>GigabitEthernet{interface-ios-xr/GigabitEthernet}.{instance-id}</name>
+                  <name>{$INTERFACE_TYPE}{$INTERFACE_NUM}.{$INST_ID}</name>
                 </interface>
                 <neighbor>
-                  <address>1.1.1.1</address>
-                  <pw-id>{current()/../../vc-id}</pw-id>
+                  <address>{$NEIGHBOR}</address>
+                  <pw-id>{$VC_ID}</pw-id>
                 </neighbor>
               </p2p>
             </group>
