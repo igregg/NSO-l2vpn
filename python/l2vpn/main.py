@@ -12,8 +12,8 @@ class ServiceCallbacks(Service):
     # must always exist.
     @Service.create
     def cb_create(self, tctx, root, service, proplist):
-        import pydevd_pycharm
-        pydevd_pycharm.settrace('localhost', port=30000, stdoutToServer=True, stderrToServer=True)
+        # import pydevd_pycharm
+        # pydevd_pycharm.settrace('localhost', port=30000, stdoutToServer=True, stderrToServer=True)
         
         self.log.info('Service create(service=', service._path, ')')
 
@@ -23,8 +23,6 @@ class ServiceCallbacks(Service):
         if len(endpoint) != 2:
             self.log.debug('Error: VPWS service must have 2 endpoints')
         vcid = service.vcid
-        # platform = self.get_device_platform(root, service, endpoint)
-        # endpoint_loopback = self.get_ip_loopback(root, service, endpoint)
 
         for device in endpoint:
             device_name = device.device
