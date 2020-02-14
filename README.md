@@ -10,11 +10,12 @@ YANG and Python template for MPLS L2VPN provisioning.
   
 ## Installation
 ```
+cd <ncs-dir>/packages
 git clone https://github.com/igregg/NSO-l2vpn.git l2vpn
 ```
 
 
-## Re-complie YANG
+## Re-compile YANG
 
 ```
 cd src

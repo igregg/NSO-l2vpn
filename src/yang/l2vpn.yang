@@ -128,7 +128,7 @@ module l2vpn {
         }
 
         leaf description {
-          type string
+          type string;
         }
 
         leaf encapsulation {
@@ -152,11 +152,11 @@ module l2vpn {
         }
 
         leaf policy-out {
-          type string
+          type string;
         }
 
         leaf policy-in {
-          type string
+          type string;
         }
 
         leaf vlan-id {
