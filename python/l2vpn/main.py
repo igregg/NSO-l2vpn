@@ -26,6 +26,7 @@ class ServiceCallbacks(Service):
 
         for device in endpoint:
             device_name = device.device
+            description = device.description
             instance_id = device.instance_id
             platform = self.get_device_platform(root, service, device_name)
             remote_ip_loopback = self.get_remote_ip_loopback(root, service, device_name, endpoint)
@@ -33,9 +34,12 @@ class ServiceCallbacks(Service):
             encapsulation = device.encapsulation
             vlan = device.vlan_id
             mtu = device.mtu
+            policy_in = device.policy_in
+            policy_out = device.policy_out
 
             vars = ncs.template.Variables()
             vars.add('DEVICE_NAME', device_name)
+            vars.add('DESCRIPTION', description)
             vars.add('INST_ID', instance_id)
             vars.add('VC_ID', vcid)
             vars.add('INTERFACE_TYPE', interface_type)
@@ -43,6 +47,8 @@ class ServiceCallbacks(Service):
             vars.add('ENCAPSULATION', encapsulation)
             vars.add('VLAN', vlan)
             vars.add('MTU', mtu)
+            vars.add('POLICY_IN', policy_in)
+            vars.add('POLICY_OUT', policy_out)
             for remote_name, remote_ip in remote_ip_loopback.items():
                 self.log.debug("Add XC neighbor", remote_name, "IP", remote_ip)
                 vars.add('NEIGHBOR', remote_ip)
@@ -51,6 +57,14 @@ class ServiceCallbacks(Service):
             template.apply('l2vpn-template', vars)
 
     def get_interface(self, root, service, device, platform):
+        """
+        Get interface type and interface number
+        :param root:
+        :param service:
+        :param device:
+        :param platform:
+        :return:
+        """
         interface_type = ''
         interface_num = ''
 
@@ -62,9 +76,6 @@ class ServiceCallbacks(Service):
                     if interface[int_type] is not None:
                         interface_type = int_type
                         interface_num = interface[int_type]
-            # for int_type, int_num in interface:
-            #     interface_type = int_type
-            #     interface_num = int_num
         elif platform == 'cisco-iosxr':
             interface = device.interface_ios_xr
             for int_type in interface:

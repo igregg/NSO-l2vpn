@@ -1,7 +1,5 @@
 <config-template xmlns="http://tail-f.com/ns/config/1.0">
   <devices xmlns="http://tail-f.com/ns/ncs">
-    <!-- <?foreach {/endpoint}?> -->
-    <!-- <device foreach="{/endpoint}"> -->
     <device>
       <name>{$DEVICE_NAME}</name>
       <config>
@@ -12,6 +10,7 @@
               <instance>
                 <id>{$INST_ID}</id>
                 <ethernet/>
+                <description>{$DESCRIPTION}</description>
                 <encapsulation>
                   <untagged when ="{ $ENCAPSULATION = 'untagged' }"/>
                   <dot1q when ="{ $ENCAPSULATION = 'dot1q' }">
@@ -32,6 +31,14 @@
                   <encapsulation>mpls</encapsulation>
                   <mtu>{$MTU}</mtu>
                 </xconnect>
+                <service-policy>
+                 <input>
+                   <name>{$POLICY_IN}</name>
+                 </input>
+                 <output>
+                   <name>{$POLICY_OUT}</name>
+                 </output>
+               </service-policy>
               </instance>
             </service>
           </GigabitEthernet>
@@ -41,6 +48,7 @@
               <instance>
                 <id>{$INST_ID}</id>
                 <ethernet/>
+                <description>{$DESCRIPTION}</description>
                 <encapsulation>
                   <untagged when ="{ $ENCAPSULATION = 'untagged' }"/>
                   <dot1q when ="{ $ENCAPSULATION = 'dot1q' }">
@@ -61,6 +69,14 @@
                   <encapsulation>mpls</encapsulation>
                   <mtu>{$MTU}</mtu>
                 </xconnect>
+                <service-policy>
+                 <input>
+                   <name>{$POLICY_IN}</name>
+                 </input>
+                 <output>
+                   <name>{$POLICY_OUT}</name>
+                 </output>
+               </service-policy>
               </instance>
             </service>
           </TenGigabitEthernet>
@@ -71,6 +87,7 @@
           <GigabitEthernet>
             <id>{$INTERFACE_NUM}.{$INST_ID}</id>
             <mode>l2transport</mode>
+            <description>{$DESCRIPTION}</description>
             <mtu>{$MTU+22}</mtu>
             <encapsulation>
               <dot1q when="{ $ENCAPSULATION = 'dot1q' }">
@@ -85,8 +102,46 @@
                 </tag>
               </ingress>
             </rewrite>
+            <service-policy>
+             <input>
+               <name>{$POLICY_IN}</name>
+             </input>
+             <output>
+               <name>{$POLICY_OUT}</name>
+             </output>
+           </service-policy>
           </GigabitEthernet>
           </GigabitEthernet-subinterface>
+
+          <TenGigE-subinterface when ="{ $INTERFACE_TYPE = 'TenGigE' }">
+          <TenGigE>
+            <id>{$INTERFACE_NUM}.{$INST_ID}</id>
+            <mode>l2transport</mode>
+            <description>{$DESCRIPTION}</description>
+            <mtu>{$MTU+22}</mtu>
+            <encapsulation>
+              <dot1q when="{ $ENCAPSULATION = 'dot1q' }">
+                <vlan-id>{$VLAN}</vlan-id>
+              </dot1q>
+            </encapsulation>
+            <rewrite when="{ $ENCAPSULATION = 'dot1q' }">
+              <ingress>
+                <tag>
+                  <pop>1</pop>
+                  <mode>symmetric</mode>
+                </tag>
+              </ingress>
+            </rewrite>
+            <service-policy>
+             <input>
+               <name>{$POLICY_IN}</name>
+             </input>
+             <output>
+               <name>{$POLICY_OUT}</name>
+             </output>
+           </service-policy>
+          </TenGigE>
+          </TenGigE-subinterface>
         </interface>
 
         <l2vpn xmlns="http://tail-f.com/ned/cisco-ios-xr">
@@ -108,6 +163,5 @@
         </l2vpn>
       </config>
     </device>
-    <!-- <?end?> -->
   </devices>
 </config-template>

@@ -13,7 +13,7 @@ module l2vpn {
     prefix ncs;
   }
   import tailf-ned-cisco-ios { 
-	  prefix ios; 
+	prefix ios;
   }
   import tailf-ned-cisco-ios-xr {
     prefix xr;
@@ -25,13 +25,6 @@ module l2vpn {
   revision 2020-02-01 {
     description
       "Initial revision.";
-  }
-
-  // may replace this with other ways of refering to the devices.
-  leaf-list device {
-    type leafref {
-      path "/ncs:devices/ncs:device/ncs:name";
-    }
   }
 
   typedef l2-serv-encap-type {
@@ -97,7 +90,6 @@ module l2vpn {
 
             case ten-gig {
               leaf TenGigabitEthernet {
-                when "/ncs:devices/ncs:device[ncs:name=current()/../../device]/ncs:config/ios:interface/ios:TenGigabitEthernet/ios:name";
                 type leafref {
                   path "/ncs:devices/ncs:device[ncs:name=current()/../../device]/ncs:config/ios:interface/ios:TenGigabitEthernet/ios:name";
                 }
@@ -135,6 +127,10 @@ module l2vpn {
           mandatory true;
         }
 
+        leaf description {
+          type string
+        }
+
         leaf encapsulation {
           type l2-serv-encap-type;
         }
@@ -155,6 +151,14 @@ module l2vpn {
           }
         }
 
+        leaf policy-out {
+          type string
+        }
+
+        leaf policy-in {
+          type string
+        }
+
         leaf vlan-id {
           when "../encapsulation = 'dot1q'";
           type int32 {
@@ -171,18 +175,4 @@ module l2vpn {
       }
     }
   }
-
-  // list l2vpn {
-  //   description "This is an RFS skeleton service";
-
-  //   key name;
-  //   leaf name {
-  //     tailf:info "Unique service id";
-  //     tailf:cli-allow-range;
-  //     type string;
-  //   }
-
-  //   uses ncs:service-data;
-  //   ncs:servicepoint l2vpn-servicepoint;
-  // }
 }
