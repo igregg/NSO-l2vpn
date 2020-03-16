@@ -1,6 +1,8 @@
 # -*- mode: python; python-indent: 4 -*-
 import ncs
+import re
 from ncs.application import Service
+from ncs.dp import Action
 
 
 # ------------------------
@@ -20,37 +22,68 @@ class ServiceCallbacks(Service):
         service_name = service.name
         self.log.info('Provisioning L2VPN-VPWS Service custommer ID:', service_name)
         endpoint = service.endpoint
-        if len(endpoint) != 2:
-            self.log.debug('Error: VPWS service must have 2 endpoints')
+        devices = endpoint
+        if len(devices) != 2:
+            self.log.debug('Error: VPWS service must have 2 devices')
         vcid = service.vcid
 
-        for device in endpoint:
-            device_name = device.device
+        policy = service.policy
+        policy_flag = False
+        if policy is not None:
+            unit = policy[-1]
+            speed = policy[:-1]
+            policy_name = "NSO-{}".format(policy)
+
+            if unit == 'K':
+                factor = 1000
+            elif unit == 'M':
+                factor = 1000000
+            
+            police_cir = int(int(speed)*1.1*factor)
+            police_bc = int(round(police_cir/8/1.5))
+            shape_avg = police_cir
+
+            policy_flag = True
+
+        for device in devices:
+            device_name = device.name
             description = device.description
-            instance_id = device.instance_id
             platform = self.get_device_platform(root, service, device_name)
-            remote_ip_loopback = self.get_remote_ip_loopback(root, service, device_name, endpoint)
+            remote_ip_loopback = self.get_remote_ip_loopback(root, service, device_name, devices)
             interface_type, interface_num = self.get_interface(root, service, device, platform)
-            encapsulation = device.encapsulation
+            # encapsulation = device.encapsulation
             vlan = device.vlan_id
             mtu = device.mtu
-            policy_in = device.policy_in
-            policy_out = device.policy_out
-
+            
             vars = ncs.template.Variables()
+            if policy_flag:
+                qos_vars = ncs.template.Variables()
+                qos_vars.add('DEVICE_NAME', device_name)
+                qos_vars.add('POLICY_NAME', policy_name)
+                # qos_vars.add('SPEED', speed)
+                qos_vars.add('POLICE_CIR', police_cir)
+                qos_vars.add('POLICE_BC', police_bc)
+                qos_vars.add('SHAPE_AVG', shape_avg)
+
+                template = ncs.template.Template(service)
+                template.apply('l2vpn-qos', qos_vars)
+
+                policy_in = policy_name + '-IN'
+                policy_out = policy_name + '-OUT'
+
+                vars.add('POLICY_IN', policy_in)
+                vars.add('POLICY_OUT', policy_out)
+
             vars.add('DEVICE_NAME', device_name)
             vars.add('DESCRIPTION', description)
-            vars.add('INST_ID', instance_id)
             vars.add('VC_ID', vcid)
             vars.add('INTERFACE_TYPE', interface_type)
             vars.add('INTERFACE_NUM', interface_num)
-            vars.add('ENCAPSULATION', encapsulation)
             vars.add('VLAN', vlan)
             vars.add('MTU', mtu)
-            vars.add('POLICY_IN', policy_in)
-            vars.add('POLICY_OUT', policy_out)
+            
             for remote_name, remote_ip in remote_ip_loopback.items():
-                self.log.debug("Add XC neighbor", remote_name, "IP", remote_ip)
+                self.log.info("Add XC neighbor", remote_name, "IP", remote_ip)
                 vars.add('NEIGHBOR', remote_ip)
 
             template = ncs.template.Template(service)
@@ -65,27 +98,30 @@ class ServiceCallbacks(Service):
         :param platform:
         :return:
         """
+        self.log.debug(" Executing in Module: get_interface")
         interface_type = ''
         interface_num = ''
+        interface = device.interface
 
-        if platform == 'cisco-ios':
-            interface = device.interface_ios
-            for int_type in interface:
-                if int_type.endswith('Ethernet'):
-                    int_type = int_type.split(':')[-1]
-                    if interface[int_type] is not None:
-                        interface_type = int_type
-                        interface_num = interface[int_type]
-        elif platform == 'cisco-iosxr':
-            interface = device.interface_ios_xr
-            for int_type in interface:
-                if int_type.endswith('Ethernet'):
-                    int_type = int_type.split(':')[-1]
-                    if interface[int_type] is not None:
-                        interface_type = int_type
-                        interface_num = interface[int_type]
-        else:
-            self.log.info('No platform was found.')
+        # if platform == 'cisco-ios':
+        #     interface = device.interface_ios
+        # elif platform == 'cisco-iosxr':
+        #     interface = device.interface_ios_xr
+        # else:
+        #     return None, None
+
+        int_rex = re.search('(\S+Ethernet)((\d\/?)+)', interface)
+        interface_type = int_rex.group(1)
+        interface_num = int_rex.group(2)
+        self.log.info("Int type:", interface_type)
+        self.log.info("Int num:", interface_num)
+
+        # for int_type in interface:
+        #     if int_type.endswith('Ethernet'):
+        #         int_type = int_type.split(':')[-1]
+        #         if interface[int_type] is not None:
+        #             interface_type = int_type
+        #             interface_num = interface[int_type]
 
         return interface_type, interface_num
 
@@ -96,7 +132,7 @@ class ServiceCallbacks(Service):
         :param service:
         :return: dict of { device_name: str:platform, ... }
         """
-        self.log.debug(" Executing in Module: get_device_platform ")
+        self.log.debug(" Executing in Module: get_device_platform")
 
         device_platform = ''
         device_capability = root.devices.device[device_name].capability
@@ -140,7 +176,7 @@ class ServiceCallbacks(Service):
         remote_ip_loopback = dict()
 
         for endpoint in endpoints:
-            device_name = endpoint.device
+            device_name = endpoint.name
             if device_name != local_device:
                 platform = self.get_device_platform(root, service, device_name)
                 remote_ip_loopback[device_name] = self.get_ip_loopback(root, service, device_name, platform)
@@ -171,6 +207,70 @@ class ServiceCallbacks(Service):
     # def cb_post_modification(self, tctx, op, kp, root, proplist):
     #     self.log.info('Service premod(service=', kp, ')')
 
+class ActionHandler(Action):
+    """This class implements the dp.Action class."""
+
+    @Action.action
+    def cb_action(self, uinfo, name, kp, input, output):
+        try:
+            with ncs.maapi.Maapi() as m:
+                with ncs.maapi.Session(m,uinfo.username,uinfo.clearpass):
+                    with m.start_write_trans() as t:
+                        root = ncs.maagic.get_root(t)
+
+                        if input.dry_run:
+                            # now lets see what I want to perform the commit dry-run
+                            # I use native format to detect changes in device
+                            input_dr = root.ncs__services.commit_dry_run.get_input()
+                            input_dr.outformat = 'native'
+                            dry_output = root.ncs__services.commit_dry_run(input_dr)
+                            
+                            output.message += "Commit Dry Run Device Changes: \n"
+                            # Let me check that no device will be modified:
+                            
+                            if len(dry_output.native.device) == 0:
+                                output.status = True
+                                output.message += "No Changes \n"
+                            else:
+                                for device in dry_output.native.device:
+                                    output.message += "Device: %s \n" % device.name
+                                    output.message += str(device.data)
+                                    output.message += "\n"
+                            
+                            output.message += "Commit Dry Run Service Changes: \n"
+                            myiter = DiffIterator()
+                            m.diff_iterate(t.th,myiter,ncs.ITER_WANT_ATTR)
+                            for item in myiter.changes:
+                                op = item["op"]
+                                kp = item["kp"]
+                                oldv = item["oldv"]
+                                newv = item["newv"]
+                                output.message += "Operation: %s - KeyPath: %s - Old Value: %s - New Value: %s \n" % (op,kp,oldv,newv)
+                    
+                            return
+                        
+                        # I now apply changes
+                        t.apply()
+                        
+                        # If requested, I will reconciliate only my l2VPN services
+                        # I may need to reconciliate more services
+
+                        if input.reconciliate:
+                            self.log.info("Entering reconciliation")
+                            services = root.l2vpn__l2vpn_vpws.l2vpn
+                            
+                            for service_tbd in changed_services:
+                                service = services[service_tbd]
+                                redeploy_inputs = service.re_deploy.get_input()
+                                redeploy_inputs.reconcile.create()
+                                redeploy_outputs = service.re_deploy(redeploy_inputs)
+                                           
+                        output.status = True
+
+        except Exception as e:
+            self.log.error("Exception...")
+            raise 
+
 
 # ---------------------------------------------
 # COMPONENT THREAD THAT WILL BE STARTED BY NCS.
@@ -185,6 +285,9 @@ class Main(ncs.application.Application):
         # as specified in the corresponding data model.
         #
         self.register_service('l2vpn-servicepoint', ServiceCallbacks)
+
+        self.log.info('Main RUNNING - L2VPN discovery')
+        self.register_action('l2vpn-discovery', ActionHandler)
 
         # If we registered any callback(s) above, the Application class
         # took care of creating a daemon (related to the service/action point).

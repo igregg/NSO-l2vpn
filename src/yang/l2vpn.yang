@@ -39,7 +39,7 @@ module l2vpn {
       enum pop1 {
         value 1;
         description "Pop 1 tag";
-      } 
+      }
       enum translate1to1 {
         value 5;
         description "Translate 1-to-1"; 
@@ -47,8 +47,33 @@ module l2vpn {
     }
   }
 
+  container l2vpn-discovery {
+    tailf:action l2vpn-discovery {
+      tailf:actionpoint l2vpn-discovery;       
+      input {
+        leaf dry-run {
+          tailf:info "just dry-run output";
+          type empty;
+        }
+        
+        leaf reconciliate {
+          tailf:info "fix refcounts";
+          type empty;   			
+        }
+      }
+      output {
+        leaf status {
+          type boolean;
+        }
+        leaf message {
+          type string;
+        }
+      }
+    }
+  }
+
   container l2vpn {
-    list vpws {
+    list l2vpn-vpws {
 
       key "name";
       leaf name {
@@ -67,89 +92,106 @@ module l2vpn {
         mandatory true;
       }
 
+      leaf policy {
+        type string;
+        // mandatory true;
+      }
+
       list endpoint {
-        key device;
+        key name;
         
-        leaf device {
-          tailf:info "PE Router";
+        leaf name {
+          tailf:info "Name of PE Router";
           type leafref {
             path "/ncs:devices/ncs:device/ncs:name";
           }
+          mandatory true;
         }
 
-        container interface-ios {
-          when "/ncs:devices/ncs:device[ncs:name=current()/../device]/ncs:capability[ncs:uri='urn:ios']";
-          choice interface-type {
-            case gig {
-              leaf GigabitEthernet {
-                type leafref {
-                  path "/ncs:devices/ncs:device[ncs:name=current()/../../device]/ncs:config/ios:interface/ios:GigabitEthernet/ios:name";
-                }
-              }
-            }
-
-            case ten-gig {
-              leaf TenGigabitEthernet {
-                type leafref {
-                  path "/ncs:devices/ncs:device[ncs:name=current()/../../device]/ncs:config/ios:interface/ios:TenGigabitEthernet/ios:name";
-                }
-              }
-            }
-          }
+        leaf interface {
+          tailf:info "Interface connect to customer";
+          type string;
+          mandatory true;
         }
+
+        // leaf interface-num {
+        //   tailf:info "Interface number connect to customer";
+        //   type string;
+        //   mandatory true;
+        // }
+
+        // container interface-ios {
+        //   when "/ncs:devices/ncs:device[ncs:name=current()/../name]/ncs:capability[ncs:uri='urn:ios']";
+        //   choice interface-type {
+        //     case gig {
+        //       leaf GigabitEthernet {
+        //         type leafref {
+        //           path "/ncs:devices/ncs:device[ncs:name=current()/../../name]/ncs:config/ios:interface/ios:GigabitEthernet/ios:name";
+        //         }
+        //       }
+        //     }
+
+        //     case ten-gig {
+        //       leaf TenGigabitEthernet {
+        //         type leafref {
+        //           path "/ncs:devices/ncs:device[ncs:name=current()/../../name]/ncs:config/ios:interface/ios:TenGigabitEthernet/ios:name";
+        //         }
+        //       }
+        //     }
+        //   }
+        // }
         
-        container interface-ios-xr {
-          when "/ncs:devices/ncs:device[ncs:name=current()/../device]/ncs:capability[ncs:uri='http://tail-f.com/ned/cisco-ios-xr']";
+        // container interface-ios-xr {
+        //   when "/ncs:devices/ncs:device[ncs:name=current()/../name]/ncs:capability[ncs:uri='http://tail-f.com/ned/cisco-ios-xr']";
 
-          choice interface-type {
-            case gig {
-              leaf GigabitEthernet {
-                type leafref {
-                  path "/ncs:devices/ncs:device[ncs:name=current()/../../device]/ncs:config/xr:interface/xr:GigabitEthernet/xr:id";
-                }
-              }
-            }
+        //   choice interface-type {
+        //     case gig {
+        //       leaf GigabitEthernet {
+        //         type leafref {
+        //           path "/ncs:devices/ncs:device[ncs:name=current()/../../name]/ncs:config/xr:interface/xr:GigabitEthernet/xr:id";
+        //         }
+        //       }
+        //     }
 
-            case ten-gig {
-              leaf TenGigabitEthernet {
-                type leafref {
-                  path "/ncs:devices/ncs:device[ncs:name=current()/../../device]/ncs:config/xr:interface/xr:TenGigE/xr:id";
-                }
-              }
-            }
-          }
-        }
+        //     case ten-gig {
+        //       leaf TenGigabitEthernet {
+        //         type leafref {
+        //           path "/ncs:devices/ncs:device[ncs:name=current()/../../name]/ncs:config/xr:interface/xr:TenGigE/xr:id";
+        //         }
+        //       }
+        //     }
+        //   }
+        // }
 
-        leaf instance-id {
+        leaf vlan-id {
           type int32 {
             range "1..4000";
           }
-          mandatory true;
         }
 
         leaf description {
           type string;
         }
 
-        leaf encapsulation {
-          type l2-serv-encap-type;
-        }
+        // leaf encapsulation {
+        //   type l2-serv-encap-type;
+        // }
 
-        container rewrite {
-          container ingress {
-            leaf tag {
-              type l2-serv-rewrite;
-            }
-            container dot1q {
-              when "../tag = 'translate1to1'";
-              leaf vlan-id {
-                type int32 {
-                  range "1..4000";
-                }
-              }
-            }
-          }
-        }
+        // container rewrite {
+        //   container ingress {
+        //     leaf tag {
+        //       type l2-serv-rewrite;
+        //     }
+        //     container dot1q {
+        //       when "../tag = 'translate1to1'";
+        //       leaf vlan-id {
+        //         type int32 {
+        //           range "1..4000";
+        //         }
+        //       }
+        //     }
+        //   }
+        // }
 
         leaf policy-out {
           type string;
@@ -159,12 +201,12 @@ module l2vpn {
           type string;
         }
 
-        leaf vlan-id {
-          when "../encapsulation = 'dot1q'";
-          type int32 {
-            range "1..4000";
-          }
-        }
+        // leaf vlan-id {
+        //   when "../encapsulation = 'dot1q'";
+        //   type int32 {
+        //     range "1..4000";
+        //   }
+        // }
 
         leaf mtu {
           type uint16 {

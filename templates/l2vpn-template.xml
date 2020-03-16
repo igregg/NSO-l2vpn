@@ -8,16 +8,15 @@
             <name>{$INTERFACE_NUM}</name>
             <service>
               <instance>
-                <id>{$INST_ID}</id>
+                <id>{$VLAN}</id>
                 <ethernet/>
                 <description>{$DESCRIPTION}</description>
                 <encapsulation>
-                  <untagged when ="{ $ENCAPSULATION = 'untagged' }"/>
-                  <dot1q when ="{ $ENCAPSULATION = 'dot1q' }">
+                  <dot1q>
                     <id>{$VLAN}</id>
                   </dot1q>
                 </encapsulation>
-                <rewrite when ="{ $ENCAPSULATION = 'dot1q' }">
+                <rewrite>
                   <ingress>
                     <tag>
                       <pop>1</pop>
@@ -32,10 +31,10 @@
                   <mtu>{$MTU}</mtu>
                 </xconnect>
                 <service-policy>
-                 <input>
+                 <input when="{ $POLICY_IN != 'None' }">
                    <name>{$POLICY_IN}</name>
                  </input>
-                 <output>
+                 <output when="{ $POLICY_OUT != 'None' }">
                    <name>{$POLICY_OUT}</name>
                  </output>
                </service-policy>
@@ -46,16 +45,15 @@
             <name>{$INTERFACE_NUM}</name>
             <service>
               <instance>
-                <id>{$INST_ID}</id>
+                <id>{$VLAN}</id>
                 <ethernet/>
                 <description>{$DESCRIPTION}</description>
                 <encapsulation>
-                  <untagged when ="{ $ENCAPSULATION = 'untagged' }"/>
-                  <dot1q when ="{ $ENCAPSULATION = 'dot1q' }">
+                  <dot1q>
                     <id>{$VLAN}</id>
                   </dot1q>
                 </encapsulation>
-                <rewrite when ="{ $ENCAPSULATION = 'dot1q' }">
+                <rewrite>
                   <ingress>
                     <tag>
                       <pop>1</pop>
@@ -70,10 +68,10 @@
                   <mtu>{$MTU}</mtu>
                 </xconnect>
                 <service-policy>
-                 <input>
+                 <input when="{ $POLICY_IN != 'None' }">
                    <name>{$POLICY_IN}</name>
                  </input>
-                 <output>
+                 <output when="{ $POLICY_OUT != 'None' }">
                    <name>{$POLICY_OUT}</name>
                  </output>
                </service-policy>
@@ -85,16 +83,16 @@
         <interface xmlns="http://tail-f.com/ned/cisco-ios-xr" tags="merge">
           <GigabitEthernet-subinterface when ="{ $INTERFACE_TYPE = 'GigabitEthernet' }">
           <GigabitEthernet>
-            <id>{$INTERFACE_NUM}.{$INST_ID}</id>
+            <id>{$INTERFACE_NUM}.{$VLAN}</id>
             <mode>l2transport</mode>
             <description>{$DESCRIPTION}</description>
             <mtu>{$MTU+22}</mtu>
             <encapsulation>
-              <dot1q when="{ $ENCAPSULATION = 'dot1q' }">
+              <dot1q>
                 <vlan-id>{$VLAN}</vlan-id>
               </dot1q>
             </encapsulation>
-            <rewrite when="{ $ENCAPSULATION = 'dot1q' }">
+            <rewrite>
               <ingress>
                 <tag>
                   <pop>1</pop>
@@ -103,28 +101,28 @@
               </ingress>
             </rewrite>
             <service-policy>
-             <input>
-               <name>{$POLICY_IN}</name>
-             </input>
-             <output>
-               <name>{$POLICY_OUT}</name>
-             </output>
-           </service-policy>
+              <input when="{ $POLICY_IN != 'None' }">
+                <name>{$POLICY_IN}</name>
+              </input>
+              <output when="{ $POLICY_OUT != 'None' }">
+                <name>{$POLICY_OUT}</name>
+              </output>
+            </service-policy>
           </GigabitEthernet>
           </GigabitEthernet-subinterface>
 
           <TenGigE-subinterface when ="{ $INTERFACE_TYPE = 'TenGigE' }">
           <TenGigE>
-            <id>{$INTERFACE_NUM}.{$INST_ID}</id>
+            <id>{$INTERFACE_NUM}.{$VLAN}</id>
             <mode>l2transport</mode>
             <description>{$DESCRIPTION}</description>
             <mtu>{$MTU+22}</mtu>
             <encapsulation>
-              <dot1q when="{ $ENCAPSULATION = 'dot1q' }">
+              <dot1q>
                 <vlan-id>{$VLAN}</vlan-id>
               </dot1q>
             </encapsulation>
-            <rewrite when="{ $ENCAPSULATION = 'dot1q' }">
+            <rewrite>
               <ingress>
                 <tag>
                   <pop>1</pop>
@@ -133,13 +131,13 @@
               </ingress>
             </rewrite>
             <service-policy>
-             <input>
-               <name>{$POLICY_IN}</name>
-             </input>
-             <output>
-               <name>{$POLICY_OUT}</name>
-             </output>
-           </service-policy>
+              <input when="{ $POLICY_IN != 'None' }">
+                <name>{$POLICY_IN}</name>
+              </input>
+              <output when="{ $POLICY_OUT != 'None' }">
+                <name>{$POLICY_OUT}</name>
+              </output>
+            </service-policy>
           </TenGigE>
           </TenGigE-subinterface>
         </interface>
@@ -151,7 +149,7 @@
               <p2p>
                 <name>NSO-Group_{$VLAN}</name>
                 <interface>
-                  <name>{$INTERFACE_TYPE}{$INTERFACE_NUM}.{$INST_ID}</name>
+                  <name>{$INTERFACE_TYPE}{$INTERFACE_NUM}.{$VLAN}</name>
                 </interface>
                 <neighbor>
                   <address>{$NEIGHBOR}</address>
